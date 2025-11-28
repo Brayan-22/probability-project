@@ -32,8 +32,8 @@ public class TeacherDashboardService {
                 MAX(i.submittedAt),
                 AVG(i.score)
             )
-            FROM IntentoQuiz i
-              JOIN Alumno a ON i.studentId = a.id
+            FROM IntentoQuiz i, Alumno a
+            WHERE i.studentId = a.id
             GROUP BY a.id, a.username, a.email
             ORDER BY a.username ASC
             """;
@@ -79,8 +79,8 @@ public class TeacherDashboardService {
                 a.username,
                 COUNT(i.id)
             )
-            FROM IntentoQuiz i
-              JOIN Alumno a ON i.studentId = a.id
+            FROM IntentoQuiz i, Alumno a
+            WHERE i.studentId = a.id
             GROUP BY a.id, a.username
             ORDER BY COUNT(i.id) DESC, a.username ASC
             """;
@@ -103,9 +103,9 @@ public class TeacherDashboardService {
                 a.username,
                 COUNT(i.id)
             )
-            FROM IntentoQuiz i
-              JOIN Alumno a ON i.studentId = a.id
-            WHERE i.status = :status
+            FROM IntentoQuiz i, Alumno a
+            WHERE i.studentId = a.id
+              AND i.status = :status
               AND i.score IS NOT NULL
               AND i.score >= :minScore
             GROUP BY a.id, a.username
