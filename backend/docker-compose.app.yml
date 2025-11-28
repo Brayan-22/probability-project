@@ -1,0 +1,45 @@
+services:
+  backend:
+    image: back-probabilidad:latest
+    environment:
+      DB_URL: jdbc:postgresql://app-db:5432/quizdb
+      DB_USER: quiz
+      DB_PASS: quiz
+      QUARKUS_OIDC_AUTH_SERVER_URL: http://keycloak:8080/realms/Probabilidad
+      QUARKUS_HTTP_PORT: 8080
+    ports:
+      - "8082:8080"
+    depends_on:
+      app-db:
+        condition: service_healthy
+    networks:
+      - app-network
+      - keycloak-network
+    restart: unless-stopped
+
+  app-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: quizdb
+      POSTGRES_USER: quiz
+      POSTGRES_PASSWORD: quiz
+    volumes:
+      - app-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quiz -d quizdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  app-data:
+
+networks:
+  app-network:
+    driver: bridge
+  keycloak-network:
+    external: true
+    name: backend_default

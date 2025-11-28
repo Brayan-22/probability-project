@@ -1,0 +1,33 @@
+# Ignorar archivos de build y cache
+build/
+.gradle/
+target/
+
+# IDE y configuración local
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Logs
+*.log
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de entorno local
+.env
+*.env.local
+
+# Git
+.git/
+.gitignore
+
+# Docker compose local
+docker-compose*.yml
+
+# Otros
+README.md

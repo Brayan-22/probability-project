@@ -1,0 +1,151 @@
+version: "3.8"
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command:
+      - start
+      - --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: https://keycloak.glud.org
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_ADMIN: https://keycloak.glud.org
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+    volumes:
+      - ${PWD}/keycloak/realms:/opt/keycloak/data/import
+      - ${PWD}/../frontend/themes:/opt/keycloak/themes
+    healthcheck:
+      test: ["CMD-SHELL", "bash -lc 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    networks:
+      - probabilidad-network
+      - reverse_proxy
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=reverse_proxy"
+        - "traefik.http.routers.keycloak.entrypoints=websecure"
+        - "traefik.http.routers.keycloak.tls.certresolver=production"
+        - "traefik.http.routers.keycloak.tls=true"
+        - "traefik.http.routers.keycloak.rule=Host(`keycloak.glud.org`)"
+        - "traefik.http.routers.keycloak.service=keycloak"
+        - "traefik.http.routers.keycloak.middlewares=keycloak-headers"
+        - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+        - "traefik.http.middlewares.keycloak-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+        - "traefik.http.middlewares.keycloak-headers.headers.customrequestheaders.X-Forwarded-Port=443"
+  quizdb:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: quizdb
+      POSTGRES_USER: quiz
+      POSTGRES_PASSWORD: quiz
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quiz -d quizdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    networks:
+      - probabilidad-back-network
+    volumes:
+      - quizdb-data:/var/lib/postgresql
+  quarkus-probabilidad:
+    image: quarkus-probabilidad:latest
+    environment:
+      DB_URL: jdbc:postgresql://quizdb:5432/quizdb
+      DB_USER: quiz
+      DB_PASSWORD: quiz
+      QUARKUS_OIDC_AUTH_SERVER_URL: ${QUARKUS_OIDC_AUTH_SERVER_URL}
+      QUARKUS_OIDC_CLIENT_ID: ${QUARKUS_OIDC_CLIENT_ID}
+      QUARKUS_OIDC_APP_TYPE: ${QUARKUS_OIDC_APP_TYPE}
+      QUARKUS_OIDC_AUDIENCE: ${QUARKUS_OIDC_AUDIENCE}
+      QUARKUS_OIDC_ROLES_SOURCE: ${QUARKUS_OIDC_ROLES_SOURCE}
+      QUARKUS_OIDC_ROLE_PATH: ${QUARKUS_OIDC_ROLE_PATH}
+      ADMIN_URL: ${ADMIN_URL}
+      REALM: ${REALM}
+      CLIENT_ID: ${CLIENT_ID}
+      CLIENT_SECRET: ${CLIENT_SECRET}
+      QUARKUS_PUBLIC_PATHS: ${QUARKUS_PUBLIC_PATHS}
+      QUARKUS_HTTP_CORS: ${QUARKUS_HTTP_CORS}
+      QUARKUS_HTTP_CORS_ORIGINS: ${QUARKUS_HTTP_CORS_ORIGINS}
+      QUARKUS_HTTP_CORS_METHODS: ${QUARKUS_HTTP_CORS_METHODS}
+    depends_on:
+      - keycloak
+      - quizdb
+    networks:
+      - probabilidad-back-network
+      - probabilidad-network
+      - reverse_proxy
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=reverse_proxy"
+        - "traefik.http.routers.quarkus-probabilidad.entrypoints=websecure"
+        - "traefik.http.routers.quarkus-probabilidad.tls.certresolver=production"
+        - "traefik.http.routers.quarkus-probabilidad.tls=true"
+        - "traefik.http.routers.quarkus-probabilidad.rule=Host(`probabilidadapi.glud.org`)"
+        - "traefik.http.routers.quarkus-probabilidad.service=quarkus-probabilidad"
+        - "traefik.http.services.quarkus-probabilidad.loadbalancer.server.port=8080"
+  frontend-probabilidad:
+    image: frontend-probabilidad:latest
+    environment:
+      VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL}
+      VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM}
+      VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID}
+      VITE_API_BASE: ${VITE_API_BASE}
+    depends_on:
+      - keycloak
+      - quarkus-probabilidad
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    networks:
+      - probabilidad-network
+      - reverse_proxy
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=reverse_proxy"
+        - "traefik.http.routers.frontend-probabilidad.entrypoints=websecure"
+        - "traefik.http.routers.frontend-probabilidad.tls.certresolver=production"
+        - "traefik.http.routers.frontend-probabilidad.tls=true"
+        - "traefik.http.routers.frontend-probabilidad.rule=Host(`probabilidad.glud.org`)"
+        - "traefik.http.routers.frontend-probabilidad.service=frontend-probabilidad"
+        - "traefik.http.services.frontend-probabilidad.loadbalancer.server.port=80"
+volumes:
+  quizdb-data:
+networks:
+  probabilidad-network:
+    driver: overlay
+  probabilidad-back-network:
+    driver: overlay
+  reverse_proxy:
+    external: true
