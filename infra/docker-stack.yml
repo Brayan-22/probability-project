@@ -59,7 +59,7 @@ services:
     networks:
       - probabilidad-back-network
     volumes:
-      - quizdb-data:/var/lib/postgresql
+      - quizdb-data:/var/lib/postgresql/data
   quarkus-probabilidad:
     image: quarkus-probabilidad:latest
     environment:
