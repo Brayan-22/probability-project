@@ -16,8 +16,8 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_PROXY_HEADERS: xforwarded
     volumes:
-      - ${PWD}/keycloak/realms:/opt/keycloak/data/import
-      - ${PWD}/../frontend/themes:/opt/keycloak/themes
+      - /home/brayan22/probability-project/infra/keycloak/realms:/opt/keycloak/data/import
+      - /home/brayan22/probability-project/frontend/themes:/opt/keycloak/themes
     healthcheck:
       test: ["CMD-SHELL", "bash -lc 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
       interval: 10s
