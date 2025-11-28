@@ -46,7 +46,7 @@ services:
         - "traefik.http.middlewares.keycloak-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
         - "traefik.http.middlewares.keycloak-headers.headers.customrequestheaders.X-Forwarded-Port=443"
   quizdb:
-    image: postgres:latest
+    image: postgres:13
     environment:
       POSTGRES_DB: quizdb
       POSTGRES_USER: quiz
@@ -91,6 +91,9 @@ services:
       replicas: 1
       restart_policy:
         condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
       placement:
         constraints:
           - node.role == manager
