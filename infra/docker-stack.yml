@@ -58,6 +58,7 @@ services:
       retries: 30
     networks:
       - probabilidad-back-network
+      - probabilidad-network
     volumes:
       - quizdb-data:/var/lib/postgresql/data
   quarkus-probabilidad:
