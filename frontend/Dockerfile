@@ -12,11 +12,11 @@ RUN npm ci
 # Copiar el resto del código
 COPY . .
 
-# Build arguments para variables de entorno
-ARG VITE_KEYCLOAK_URL
-ARG VITE_KEYCLOAK_REALM
-ARG VITE_KEYCLOAK_CLIENT_ID
-ARG VITE_API_BASE
+# Build arguments para variables de entorno con valores por defecto de producción
+ARG VITE_KEYCLOAK_URL=https://keycloak.glud.org
+ARG VITE_KEYCLOAK_REALM=Probabilidad
+ARG VITE_KEYCLOAK_CLIENT_ID=frontend-spa
+ARG VITE_API_BASE=https://probabilidadapi.glud.org/api
 
 # Establecer variables de entorno para el build
 ENV VITE_KEYCLOAK_URL=${VITE_KEYCLOAK_URL}

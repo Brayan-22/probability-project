@@ -105,11 +105,8 @@ services:
         - "traefik.http.services.quarkus-probabilidad.loadbalancer.server.port=8080"
   frontend-probabilidad:
     image: frontend-probabilidad:latest
-    environment:
-      VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL}
-      VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM}
-      VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID}
-      VITE_API_BASE: ${VITE_API_BASE}
+    # Nota: Las variables VITE_* están quemadas durante el build del imagen
+    # No se pueden configurar en runtime porque Vite compila las variables en tiempo de build
     depends_on:
       - keycloak
       - quarkus-probabilidad
