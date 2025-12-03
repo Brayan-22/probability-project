@@ -66,7 +66,7 @@ pipeline {
                     echo "Building frontend image: ${FRONTEND_IMAGE}:latest"
                     withCredentials([file(credentialsId: 'stack-probability-env-file', variable: 'ENV_FILE')]) {
                         dir('frontend') {
-                            sh """
+                            sh """#!/bin/bash
                                 set -a
                                 source \$ENV_FILE
                                 set +a
@@ -93,7 +93,7 @@ pipeline {
 
                     withCredentials([file(credentialsId: 'stack-probability-env-file', variable: 'ENV_FILE')]) {
                         dir('infra') {
-                            sh """
+                            sh """#!/bin/bash
                                 # Cargar variables de entorno
                                 set -a
                                 source \$ENV_FILE
@@ -120,9 +120,9 @@ pipeline {
                 script {
                     echo "Deploying stack: ${STACK_NAME}"
 
-                    withCredentials([file(credentialsId: 'stack-env-file', variable: 'ENV_FILE')]) {
+                    withCredentials([file(credentialsId: 'stack-probability-env-file', variable: 'ENV_FILE')]) {
                         dir('infra') {
-                            sh """
+                            sh """#!/bin/bash
                                 # Cargar variables de entorno para el deploy
                                 set -a
                                 source \$ENV_FILE
