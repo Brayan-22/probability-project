@@ -121,24 +121,39 @@ pipeline {
                     echo 'Preparing Keycloak realm and themes data...'
 
                     sh """#!/bin/bash
-                        # Crear volúmenes si no existen
+                        set -x  # Enable debug mode
+
+                        # Verificar que el archivo de realm existe antes de copiar
+                        echo "=== Checking source realm file ==="
+                        ls -la \$(pwd)/infra/keycloak/realms/ || echo "Directory not found!"
+
+                        if [ ! -f "\$(pwd)/infra/keycloak/realms/Probabilidad-realm.json" ]; then
+                            echo "ERROR: Probabilidad-realm.json not found!"
+                            echo "Current directory: \$(pwd)"
+                            echo "Directory contents:"
+                            find infra/keycloak -type f 2>/dev/null || echo "No files found"
+                            exit 1
+                        fi
+
+                        echo "=== Creating Docker volumes ==="
                         docker volume create probabilidad-stack_keycloak-realms || true
                         docker volume create probabilidad-stack_keycloak-themes || true
 
-                        # Copiar realm configuration al volumen usando contenedor temporal
-                        # El archivo fue copiado por el stage anterior a: infra/keycloak/realms/
+                        echo "=== Listing existing volumes ==="
+                        docker volume ls | grep keycloak
+
+                        echo "=== Copying realm configuration to volume ==="
                         docker run --rm \
                             -v \$(pwd)/infra/keycloak/realms:/source:ro \
                             -v probabilidad-stack_keycloak-realms:/target \
-                            alpine sh -c "cp -r /source/* /target/ 2>/dev/null || echo 'No realm files to copy'"
+                            alpine sh -c "ls -la /source/ && cp -v /source/* /target/ && ls -la /target/"
 
-                        # Verificar que se copió correctamente
-                        echo "Verifying realm file in volume:"
+                        echo "=== Verifying realm file in volume ==="
                         docker run --rm \
                             -v probabilidad-stack_keycloak-realms:/data \
-                            alpine ls -la /data
+                            alpine sh -c "ls -la /data/ && echo '---' && cat /data/Probabilidad-realm.json | head -20"
 
-                        # Copiar themes al volumen usando contenedor temporal (si existen)
+                        echo "=== Copying themes (if exist) ==="
                         if [ -d "frontend/themes" ]; then
                             docker run --rm \
                                 -v \$(pwd)/frontend/themes:/source:ro \
@@ -148,7 +163,7 @@ pipeline {
                             echo "No themes directory found, skipping..."
                         fi
 
-                        echo "Keycloak data prepared successfully"
+                        echo "=== Keycloak data prepared successfully ==="
                     """
                 }
             }
