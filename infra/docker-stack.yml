@@ -16,8 +16,8 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_PROXY_HEADERS: xforwarded
     volumes:
-      - /home/brayan22/probability-project/infra/keycloak/realms:/opt/keycloak/data/import
-      - /home/brayan22/probability-project/frontend/themes:/opt/keycloak/themes
+      - keycloak-realms:/opt/keycloak/data/import
+      - keycloak-themes:/opt/keycloak/themes
     healthcheck:
       test: ["CMD-SHELL", "bash -lc 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
       interval: 10s
@@ -143,6 +143,8 @@ services:
         - "traefik.http.services.frontend-probabilidad.loadbalancer.server.port=80"
 volumes:
   quizdb-data:
+  keycloak-realms:
+  keycloak-themes:
 networks:
   probabilidad-network:
     driver: overlay

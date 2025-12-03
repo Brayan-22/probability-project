@@ -115,6 +115,45 @@ pipeline {
             }
         }
 
+        stage('Prepare Keycloak Data') {
+            steps {
+                script {
+                    echo 'Preparing Keycloak realm and themes data...'
+
+                    sh """#!/bin/bash
+                        # Crear volúmenes si no existen
+                        docker volume create probabilidad-stack_keycloak-realms || true
+                        docker volume create probabilidad-stack_keycloak-themes || true
+
+                        # Copiar realm configuration al volumen usando contenedor temporal
+                        # El archivo fue copiado por el stage anterior a: infra/keycloak/realms/
+                        docker run --rm \
+                            -v \$(pwd)/infra/keycloak/realms:/source:ro \
+                            -v probabilidad-stack_keycloak-realms:/target \
+                            alpine sh -c "cp -r /source/* /target/ 2>/dev/null || echo 'No realm files to copy'"
+
+                        # Verificar que se copió correctamente
+                        echo "Verifying realm file in volume:"
+                        docker run --rm \
+                            -v probabilidad-stack_keycloak-realms:/data \
+                            alpine ls -la /data
+
+                        # Copiar themes al volumen usando contenedor temporal (si existen)
+                        if [ -d "frontend/themes" ]; then
+                            docker run --rm \
+                                -v \$(pwd)/frontend/themes:/source:ro \
+                                -v probabilidad-stack_keycloak-themes:/target \
+                                alpine sh -c "cp -r /source/* /target/ 2>/dev/null || echo 'No theme files to copy'"
+                        else
+                            echo "No themes directory found, skipping..."
+                        fi
+
+                        echo "Keycloak data prepared successfully"
+                    """
+                }
+            }
+        }
+
         stage('Deploy to Swarm') {
             steps {
                 script {
